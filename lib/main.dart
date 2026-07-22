@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'pages/settings_page.dart';
 import 'services/network_service.dart';
@@ -32,16 +33,19 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
+enum PcStatus { online, offline, checking, waking, noNetwork }
+
 class _HomePageState extends State<HomePage> {
   final SettingsService _settingsService = SettingsService();
 
-  bool _isPcOnline = false;
-  bool _isChecking = false;
+  PcStatus _status = PcStatus.checking;
   bool _isInitialized = false;
   bool _isOnLocal = false;
   bool _isOnTailscale = false;
 
   HomeAssistantService? _haService;
+  Timer? _refreshTimer;
+  static const _refreshInterval = Duration(seconds: 2);
 
   @override
   void initState() {
@@ -49,12 +53,28 @@ class _HomePageState extends State<HomePage> {
     _initSettings();
   }
 
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
   Future<void> _initSettings() async {
     await _settingsService.init();
     setState(() {
       _isInitialized = true;
     });
+    _startAutoRefresh();
     _checkPcStatus();
+  }
+
+  void _startAutoRefresh() {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(_refreshInterval, (_) {
+      if (_status != PcStatus.waking) {
+        _checkPcStatus(silent: true);
+      }
+    });
   }
 
   Future<void> _checkNetworkStatus() async {
@@ -77,12 +97,13 @@ class _HomePageState extends State<HomePage> {
     return _settingsService.haLocalUrl;
   }
 
-  Future<void> _checkPcStatus() async {
-    if (_isChecking) return;
-
-    setState(() {
-      _isChecking = true;
-    });
+  Future<void> _checkPcStatus({bool silent = false}) async {
+    if (!silent && _status == PcStatus.checking) return;
+    if (!silent) {
+      setState(() {
+        _status = PcStatus.checking;
+      });
+    }
 
     await _checkNetworkStatus();
 
@@ -103,8 +124,13 @@ class _HomePageState extends State<HomePage> {
 
     if (mounted) {
       setState(() {
-        _isPcOnline = online;
-        _isChecking = false;
+        if (online) {
+          _status = PcStatus.online;
+        } else if (_isOnLocal || _isOnTailscale) {
+          _status = PcStatus.offline;
+        } else {
+          _status = PcStatus.noNetwork;
+        }
       });
     }
   }
@@ -114,30 +140,35 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _onCircleButtonTap() async {
-    if (_isPcOnline || _isChecking) return;
+    if (_status == PcStatus.online ||
+        _status == PcStatus.checking ||
+        _status == PcStatus.waking) {
+      return;
+    }
 
     await _checkNetworkStatus();
 
     if (_canWake()) {
+      setState(() {
+        _status = PcStatus.waking;
+      });
+
       _haService = HomeAssistantService(
         baseUrl: _getHaBaseUrl(),
         token: _settingsService.haToken,
       );
-      final wakeSuccess =
+
+      final wakeSent =
           await _haService?.turnOnSwitch(_settingsService.haSwitchEntity) ??
           false;
 
-      if (wakeSuccess && mounted) {
+      if (wakeSent && mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('已发送唤醒指令')));
-      } else if (!wakeSuccess && mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('唤醒失败，请检查设置')));
       }
 
-      await Future.delayed(const Duration(seconds: 3));
+      await Future.delayed(const Duration(seconds: 5));
       _checkPcStatus();
     } else {
       AppLauncherService.launchTailscale();
@@ -145,39 +176,54 @@ class _HomePageState extends State<HomePage> {
   }
 
   Color _getButtonColor() {
-    if (_isPcOnline) {
-      return Colors.blue;
+    switch (_status) {
+      case PcStatus.online:
+        return Colors.blue;
+      case PcStatus.offline:
+        return Colors.orange;
+      case PcStatus.checking:
+        return Colors.grey;
+      case PcStatus.waking:
+        return Colors.amber;
+      case PcStatus.noNetwork:
+        return Colors.grey;
     }
-    if (_canWake()) {
-      return Colors.orange;
-    }
-    return Colors.grey;
   }
 
   String _getStatusText() {
-    if (_isChecking) {
-      return '检测中...';
+    switch (_status) {
+      case PcStatus.online:
+        return 'PC在线';
+      case PcStatus.offline:
+        if (_isOnLocal) {
+          return 'PC离线，点击唤醒（局域网）';
+        }
+        if (_isOnTailscale) {
+          return 'PC离线，点击唤醒（HA）';
+        }
+        return 'PC离线';
+      case PcStatus.checking:
+        return '检测中...';
+      case PcStatus.waking:
+        return '正在唤醒，请稍候...';
+      case PcStatus.noNetwork:
+        return 'PC离线，点击启动Tailscale';
     }
-    if (_isPcOnline) {
-      return 'PC在线';
-    }
-    if (_isOnLocal) {
-      return 'PC离线，点击唤醒（局域网）';
-    }
-    if (_isOnTailscale) {
-      return 'PC离线，点击唤醒（HA）';
-    }
-    return 'PC离线，点击启动Tailscale';
   }
 
   Color? _getStatusTextColor() {
-    if (_isPcOnline) {
-      return Colors.blue;
+    switch (_status) {
+      case PcStatus.online:
+        return Colors.blue;
+      case PcStatus.offline:
+        return Colors.orange;
+      case PcStatus.checking:
+        return Colors.grey[600];
+      case PcStatus.waking:
+        return Colors.amber;
+      case PcStatus.noNetwork:
+        return Colors.grey[600];
     }
-    if (_canWake()) {
-      return Colors.orange;
-    }
-    return Colors.grey[600];
   }
 
   void _openSettings() async {
@@ -201,7 +247,7 @@ class _HomePageState extends State<HomePage> {
         title: const Text('Wake On LAN'),
         leading: IconButton(
           icon: const Icon(Icons.refresh),
-          onPressed: _checkPcStatus,
+          onPressed: () => _checkPcStatus(silent: false),
           tooltip: '刷新',
         ),
         actions: [
@@ -217,8 +263,14 @@ class _HomePageState extends State<HomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             GestureDetector(
-              onTap: _isPcOnline || _isChecking ? null : _onCircleButtonTap,
-              child: Container(
+              onTap:
+                  _status == PcStatus.online ||
+                      _status == PcStatus.checking ||
+                      _status == PcStatus.waking
+                  ? null
+                  : _onCircleButtonTap,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
                 width: 180,
                 height: 180,
                 decoration: BoxDecoration(
@@ -232,21 +284,35 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ],
                 ),
-                child: const Icon(
-                  Icons.power_settings_new,
-                  size: 80,
-                  color: Colors.white,
-                ),
+                child: _status == PcStatus.waking
+                    ? const Center(
+                        child: SizedBox(
+                          width: 60,
+                          height: 60,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 5,
+                            color: Colors.white,
+                          ),
+                        ),
+                      )
+                    : const Icon(
+                        Icons.power_settings_new,
+                        size: 80,
+                        color: Colors.white,
+                      ),
               ),
             ),
             const SizedBox(height: 24),
-            Text(
-              _getStatusText(),
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: _getStatusTextColor()),
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 200),
+              style:
+                  Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: _getStatusTextColor(),
+                  ) ??
+                  const TextStyle(),
+              child: Text(_getStatusText()),
             ),
-            if (_isChecking)
+            if (_status == PcStatus.checking)
               const Padding(
                 padding: EdgeInsets.only(top: 8),
                 child: SizedBox(
@@ -266,7 +332,12 @@ class _HomePageState extends State<HomePage> {
             _buildSquareButton(
               icon: Icons.play_arrow,
               label: '唤醒',
-              onTap: _isPcOnline || _isChecking ? null : _onCircleButtonTap,
+              onTap:
+                  _status == PcStatus.online ||
+                      _status == PcStatus.checking ||
+                      _status == PcStatus.waking
+                  ? null
+                  : _onCircleButtonTap,
             ),
             _buildSquareButton(
               icon: Icons.network_ping,

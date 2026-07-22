@@ -26,14 +26,30 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     super.initState();
-    _ipController = TextEditingController(text: widget.settingsService.ipAddress);
-    _macController = TextEditingController(text: widget.settingsService.macAddress);
-    _tailscaleIpController = TextEditingController(text: widget.settingsService.tailscaleIp);
-    _haLocalUrlController = TextEditingController(text: widget.settingsService.haLocalUrl);
-    _haTailscaleUrlController = TextEditingController(text: widget.settingsService.haTailscaleUrl);
-    _haTokenController = TextEditingController(text: widget.settingsService.haToken);
-    _haSensorController = TextEditingController(text: widget.settingsService.haSensorEntity);
-    _haSwitchController = TextEditingController(text: widget.settingsService.haSwitchEntity);
+    _ipController = TextEditingController(
+      text: widget.settingsService.ipAddress,
+    );
+    _macController = TextEditingController(
+      text: widget.settingsService.macAddress,
+    );
+    _tailscaleIpController = TextEditingController(
+      text: widget.settingsService.tailscaleIp,
+    );
+    _haLocalUrlController = TextEditingController(
+      text: widget.settingsService.haLocalUrl,
+    );
+    _haTailscaleUrlController = TextEditingController(
+      text: widget.settingsService.haTailscaleUrl,
+    );
+    _haTokenController = TextEditingController(
+      text: widget.settingsService.haToken,
+    );
+    _haSensorController = TextEditingController(
+      text: widget.settingsService.haSensorEntity,
+    );
+    _haSwitchController = TextEditingController(
+      text: widget.settingsService.haSwitchEntity,
+    );
   }
 
   @override
@@ -53,9 +69,9 @@ class _SettingsPageState extends State<SettingsPage> {
     final ip = _ipController.text.trim();
     if (ip.isNotEmpty) {
       widget.settingsService.setIpAddress(ip);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('IP地址已保存')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('IP地址已保存')));
     }
   }
 
@@ -63,9 +79,9 @@ class _SettingsPageState extends State<SettingsPage> {
     final mac = _macController.text.trim();
     if (mac.isNotEmpty) {
       widget.settingsService.setMacAddress(mac);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('MAC地址已保存')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('MAC地址已保存')));
     }
   }
 
@@ -73,9 +89,9 @@ class _SettingsPageState extends State<SettingsPage> {
     final ip = _tailscaleIpController.text.trim();
     if (ip.isNotEmpty) {
       widget.settingsService.setTailscaleIp(ip);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tailscale IP已保存')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Tailscale IP已保存')));
     }
   }
 
@@ -83,9 +99,9 @@ class _SettingsPageState extends State<SettingsPage> {
     final url = _haLocalUrlController.text.trim();
     if (url.isNotEmpty) {
       widget.settingsService.setHaLocalUrl(url);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('局域网HA地址已保存')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('局域网HA地址已保存')));
     }
   }
 
@@ -93,9 +109,9 @@ class _SettingsPageState extends State<SettingsPage> {
     final url = _haTailscaleUrlController.text.trim();
     if (url.isNotEmpty) {
       widget.settingsService.setHaTailscaleUrl(url);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tailscale HA地址已保存')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Tailscale HA地址已保存')));
     }
   }
 
@@ -103,9 +119,9 @@ class _SettingsPageState extends State<SettingsPage> {
     final token = _haTokenController.text.trim();
     if (token.isNotEmpty) {
       widget.settingsService.setHaToken(token);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('HA密钥已保存')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('HA密钥已保存')));
     }
   }
 
@@ -113,9 +129,9 @@ class _SettingsPageState extends State<SettingsPage> {
     final entity = _haSensorController.text.trim();
     if (entity.isNotEmpty) {
       widget.settingsService.setHaSensorEntity(entity);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('传感器实体已保存')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('传感器实体已保存')));
     }
   }
 
@@ -123,9 +139,9 @@ class _SettingsPageState extends State<SettingsPage> {
     final entity = _haSwitchController.text.trim();
     if (entity.isNotEmpty) {
       widget.settingsService.setHaSwitchEntity(entity);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('开关实体已保存')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('开关实体已保存')));
     }
   }
 
@@ -210,7 +226,10 @@ class _SettingsPageState extends State<SettingsPage> {
             },
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: TextField(
                   controller: _haLocalUrlController,
                   decoration: InputDecoration(
@@ -227,7 +246,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: TextField(
                   controller: _haTailscaleUrlController,
                   decoration: InputDecoration(
@@ -244,7 +266,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: TextField(
                   controller: _haTokenController,
                   obscureText: true,
@@ -262,7 +287,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: TextField(
                   controller: _haSensorController,
                   decoration: InputDecoration(
@@ -298,46 +326,9 @@ class _SettingsPageState extends State<SettingsPage> {
             ],
           ),
           const Divider(),
-          SwitchListTile(
-            title: const Text('深色模式'),
-            subtitle: const Text('切换应用主题'),
-            value: _darkMode,
-            onChanged: (value) {
-              setState(() {
-                _darkMode = value;
-              });
-            },
-            secondary: const Icon(Icons.dark_mode),
-          ),
-          const Divider(),
-          ListTile(
-            title: const Text('字体大小'),
-            subtitle: Slider(
-              value: _fontSize,
-              min: 12,
-              max: 24,
-              divisions: 6,
-              label: _fontSize.round().toString(),
-              onChanged: (value) {
-                setState(() {
-                  _fontSize = value;
-                });
-              },
-            ),
-            leading: const Icon(Icons.text_fields),
-          ),
-          const Divider(),
-          ListTile(
-            title: const Text('设备管理'),
-            subtitle: const Text('管理唤醒设备列表'),
-            leading: const Icon(Icons.devices),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {},
-          ),
-          const Divider(),
           ListTile(
             title: const Text('关于'),
-            subtitle: const Text('版本 1.0.0'),
+            subtitle: const Text('版本 1.1.0'),
             leading: const Icon(Icons.info_outline),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {},
