@@ -46,7 +46,7 @@ class _HomePageState extends State<HomePage> {
 
   HomeAssistantService? _haService;
   Timer? _refreshTimer;
-  static const _refreshInterval = Duration(seconds: 2);
+  static const _refreshInterval = Duration(seconds: 5);
 
   @override
   void initState() {
@@ -169,7 +169,7 @@ class _HomePageState extends State<HomePage> {
         ).showSnackBar(const SnackBar(content: Text('已发送唤醒指令')));
       }
 
-      await Future.delayed(const Duration(seconds: 5));
+      await Future.delayed(const Duration(seconds: 10));
       _checkPcStatus();
     } else {
       AppLauncherService.launchTailscale();

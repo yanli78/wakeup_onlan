@@ -1,7 +1,34 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:xterm/xterm.dart';
 import '../services/ssh_service.dart';
+
+const _greenScreenTheme = TerminalTheme(
+  cursor: Color(0XFF33FF33),
+  selection: Color(0X5533FF33),
+  foreground: Color(0XFF33FF33),
+  background: Color(0XFF000000),
+  black: Color(0XFF003300),
+  red: Color(0XFF00AA00),
+  green: Color(0XFF00FF00),
+  yellow: Color(0XFF00FF00),
+  blue: Color(0XFF00AA00),
+  magenta: Color(0XFF00FF00),
+  cyan: Color(0XFF00FF00),
+  white: Color(0XFF33FF33),
+  brightBlack: Color(0XFF005500),
+  brightRed: Color(0XFF00FF00),
+  brightGreen: Color(0XFF33FF33),
+  brightYellow: Color(0XFF33FF33),
+  brightBlue: Color(0XFF00FF00),
+  brightMagenta: Color(0XFF33FF33),
+  brightCyan: Color(0XFF33FF33),
+  brightWhite: Color(0XFF99FF99),
+  searchHitBackground: Color(0X55FFFFFF),
+  searchHitBackgroundCurrent: Color(0XAAFFFFFF),
+  searchHitForeground: Color(0XFF000000),
+);
 
 class SshTerminalPage extends StatefulWidget {
   final String deviceName;
@@ -34,40 +61,53 @@ class SshTerminalPage extends StatefulWidget {
 }
 
 class _SshTerminalPageState extends State<SshTerminalPage> {
-  final ScrollController _scrollController = ScrollController();
-  final TextEditingController _inputController = TextEditingController();
+  late final Terminal _terminal;
+  final TerminalController _terminalController = TerminalController();
   final FocusNode _focusNode = FocusNode();
-  final StringBuffer _outputBuffer = StringBuffer();
-  final List<String> _commandHistory = [];
-  int _historyIndex = -1;
 
   SshShell? _shell;
   bool _isConnecting = true;
   bool _isConnected = false;
   String? _error;
 
-  final RegExp _ansiEscape = RegExp(
-    r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])',
-    multiLine: true,
-  );
-
-  String _cleanAnsi(String input) {
-    return input.replaceAll(_ansiEscape, '');
-  }
+  double _fontSize = 13;
+  double _baseFontSize = 13;
 
   @override
   void initState() {
     super.initState();
+    _terminal = Terminal(
+      onOutput: _onTerminalOutput,
+      onResize: _onTerminalResize,
+    );
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     _connect();
   }
 
   @override
   void dispose() {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
     _shell?.close();
-    _scrollController.dispose();
-    _inputController.dispose();
     _focusNode.dispose();
+    _terminalController.dispose();
     super.dispose();
+  }
+
+  void _onTerminalOutput(String data) {
+    if (_shell != null && _isConnected) {
+      _shell!.write(data);
+    }
+  }
+
+  void _onTerminalResize(int width, int height, int pixelWidth, int pixelHeight) {
+    _shell?.session.resizeTerminal(width, height);
   }
 
   Future<void> _connect() async {
@@ -75,7 +115,6 @@ class _SshTerminalPageState extends State<SshTerminalPage> {
       _isConnecting = true;
       _isConnected = false;
       _error = null;
-      _outputBuffer.clear();
     });
 
     try {
@@ -102,22 +141,18 @@ class _SshTerminalPageState extends State<SshTerminalPage> {
 
       shell.output.listen(
         (data) {
-          final raw = utf8.decode(data, allowMalformed: true);
-          final clean = _cleanAnsi(raw);
-          setState(() {
-            _outputBuffer.write(clean);
-          });
-          _scrollToBottom();
+          final text = utf8.decode(data, allowMalformed: true);
+          _terminal.write(text);
         },
         onError: (e) {
           setState(() {
-            _outputBuffer.write('\n连接错误: $e');
+            _terminal.write('\r\n\x1b[31m连接错误: $e\x1b[0m\r\n');
             _isConnected = false;
           });
         },
         onDone: () {
           setState(() {
-            _outputBuffer.write('\n连接已断开');
+            _terminal.write('\r\n\x1b[31m连接已断开\x1b[0m\r\n');
             _isConnected = false;
           });
         },
@@ -140,139 +175,93 @@ class _SshTerminalPageState extends State<SshTerminalPage> {
     }
   }
 
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 100),
-          curve: Curves.easeOut,
-        );
-      }
+  void _sendKey(String data) {
+    if (_shell != null && _isConnected) {
+      _shell!.write(data);
+    }
+  }
+
+  void _sendByte(int byte) {
+    if (_shell != null && _isConnected) {
+      _shell!.writeBytes(Uint8List.fromList([byte]));
+    }
+  }
+
+  void _handleScaleStart(ScaleStartDetails details) {
+    _baseFontSize = _fontSize;
+  }
+
+  void _handleScaleUpdate(ScaleUpdateDetails details) {
+    final scale = details.scale;
+    if (scale == 0) return;
+    final newSize = (_baseFontSize * scale).clamp(8.0, 24.0);
+    if ((newSize - _fontSize).abs() > 0.5) {
+      setState(() {
+        _fontSize = newSize;
+      });
+    }
+  }
+
+  void _resetFontSize() {
+    setState(() {
+      _fontSize = 13;
     });
-  }
-
-  void _sendCommand() {
-    final cmd = _inputController.text;
-    if (cmd.isEmpty || _shell == null || !_isConnected) return;
-
-    _shell!.write('$cmd\n');
-
-    if (_commandHistory.isEmpty || _commandHistory.last != cmd) {
-      _commandHistory.add(cmd);
-    }
-    _historyIndex = _commandHistory.length;
-
-    _inputController.clear();
-    _focusNode.requestFocus();
-  }
-
-  void _historyUp() {
-    if (_commandHistory.isEmpty) return;
-    if (_historyIndex > 0) {
-      _historyIndex--;
-      _inputController.text = _commandHistory[_historyIndex];
-      _inputController.selection = TextSelection.fromPosition(
-        TextPosition(offset: _inputController.text.length),
-      );
-    }
-  }
-
-  void _historyDown() {
-    if (_commandHistory.isEmpty) return;
-    if (_historyIndex < _commandHistory.length - 1) {
-      _historyIndex++;
-      _inputController.text = _commandHistory[_historyIndex];
-    } else {
-      _historyIndex = _commandHistory.length;
-      _inputController.clear();
-    }
-    _inputController.selection = TextSelection.fromPosition(
-      TextPosition(offset: _inputController.text.length),
-    );
-  }
-
-  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
-    if (event is KeyDownEvent) {
-      if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-        _historyUp();
-        return KeyEventResult.handled;
-      }
-      if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-        _historyDown();
-        return KeyEventResult.handled;
-      }
-    }
-    return KeyEventResult.ignored;
-  }
-
-  Widget _buildTerminal() {
-    return SizedBox.expand(
-      child: Container(
-        color: Colors.black,
-        padding: const EdgeInsets.all(8),
-        child: SingleChildScrollView(
-          controller: _scrollController,
-          child: SelectableText(
-            _outputBuffer.toString(),
-            style: const TextStyle(
-              fontFamily: 'monospace',
-              fontSize: 13,
-              color: Colors.greenAccent,
-              height: 1.3,
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
+
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.grey[900],
-        foregroundColor: Colors.white,
-        titleSpacing: 0,
-        title: Row(
-          children: [
-            Icon(
-              _isConnected
-                  ? Icons.circle
-                  : _isConnecting
-                      ? Icons.hourglass_empty
-                      : Icons.error,
-              size: 12,
-              color: _isConnected
-                  ? Colors.green
-                  : _isConnecting
-                      ? Colors.orange
-                      : Colors.red,
+      appBar: isLandscape
+          ? null
+          : AppBar(
+              backgroundColor: Colors.grey[900],
+              foregroundColor: Colors.white,
+              titleSpacing: 0,
+              title: Row(
+                children: [
+                  Icon(
+                    _isConnected
+                        ? Icons.circle
+                        : _isConnecting
+                            ? Icons.hourglass_empty
+                            : Icons.error,
+                    size: 12,
+                    color: _isConnected
+                        ? Colors.green
+                        : _isConnecting
+                            ? Colors.orange
+                            : Colors.red,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(widget.deviceName),
+                ],
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.text_fields),
+                  onPressed: _resetFontSize,
+                  tooltip: '重置字体大小',
+                ),
+                if (_isConnected)
+                  IconButton(
+                    icon: const Icon(Icons.stop_circle_outlined),
+                    onPressed: () => _sendByte(0x03),
+                    tooltip: '发送 Ctrl+C',
+                  ),
+                IconButton(
+                  icon: const Icon(Icons.replay),
+                  onPressed: () {
+                    _shell?.close();
+                    _connect();
+                  },
+                  tooltip: '重新连接',
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            Text(widget.deviceName),
-          ],
-        ),
-        actions: [
-          if (_isConnected)
-            IconButton(
-              icon: const Icon(Icons.stop_circle_outlined),
-              onPressed: () {
-                _shell?.session.write(Uint8List.fromList([0x03]));
-              },
-              tooltip: '发送 Ctrl+C',
-            ),
-          IconButton(
-            icon: const Icon(Icons.replay),
-            onPressed: () {
-              _shell?.close();
-              _connect();
-            },
-            tooltip: '重新连接',
-          ),
-        ],
-      ),
       body: SafeArea(
         top: false,
         bottom: false,
@@ -316,7 +305,8 @@ class _SshTerminalPageState extends State<SshTerminalPage> {
                                 const SizedBox(height: 8),
                                 Text(
                                   _error!,
-                                  style: const TextStyle(color: Colors.grey),
+                                  style:
+                                      const TextStyle(color: Colors.grey),
                                   textAlign: TextAlign.center,
                                 ),
                                 const SizedBox(height: 24),
@@ -328,68 +318,80 @@ class _SshTerminalPageState extends State<SshTerminalPage> {
                             ),
                           ),
                         )
-                      : _buildTerminal(),
-            ),
-            if (!_isConnecting && _error == null)
-              Container(
-                color: Colors.grey[900],
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                child: SafeArea(
-                  top: false,
-                  child: Row(
-                    children: [
-                      const Text(
-                        '\$ ',
-                        style: TextStyle(
-                          fontFamily: 'monospace',
-                          color: Colors.greenAccent,
-                        ),
-                      ),
-                      Expanded(
-                        child: Focus(
-                          focusNode: _focusNode,
-                          onKeyEvent: _handleKeyEvent,
-                          child: TextField(
-                            controller: _inputController,
-                            style: const TextStyle(
+                      : GestureDetector(
+                          onScaleStart: _handleScaleStart,
+                          onScaleUpdate: _handleScaleUpdate,
+                          child: TerminalView(
+                            _terminal,
+                            controller: _terminalController,
+                            focusNode: _focusNode,
+                            autoResize: true,
+                            textStyle: TerminalStyle(
+                              fontSize: _fontSize,
                               fontFamily: 'monospace',
-                              color: Colors.greenAccent,
                             ),
-                            decoration: const InputDecoration(
-                              border: InputBorder.none,
-                              isDense: true,
-                              contentPadding:
-                                  EdgeInsets.symmetric(vertical: 10),
-                            ),
-                            onSubmitted: (_) => _sendCommand(),
-                            enabled: _isConnected,
+                            theme: _greenScreenTheme,
+                            cursorType: TerminalCursorType.block,
+                            alwaysShowCursor: true,
+                            padding: const EdgeInsets.all(4),
                           ),
                         ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.keyboard_arrow_up, size: 24),
-                        color: Colors.greenAccent,
-                        onPressed: _isConnected ? _historyUp : null,
-                        tooltip: '上一条命令',
-                      ),
-                      IconButton(
-                        icon:
-                            const Icon(Icons.keyboard_arrow_down, size: 24),
-                        color: Colors.greenAccent,
-                        onPressed: _isConnected ? _historyDown : null,
-                        tooltip: '下一条命令',
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.send, size: 20),
-                        color: Colors.greenAccent,
-                        onPressed: _isConnected ? _sendCommand : null,
-                        tooltip: '发送',
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+            ),
+            if (_isConnected && !isLandscape) _buildKeyBar(),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildKeyBar() {
+    return Container(
+      color: Colors.grey[900],
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _buildKey('Esc', () => _sendByte(0x1B)),
+            _buildKey('Tab', () => _sendByte(0x09)),
+            _buildKey('Ctrl', () => _sendByte(0x03), color: Colors.orange),
+            _buildKey('↑', () => _sendKey('\x1b[A')),
+            _buildKey('↓', () => _sendKey('\x1b[B')),
+            _buildKey('←', () => _sendKey('\x1b[D')),
+            _buildKey('→', () => _sendKey('\x1b[C')),
+            _buildKey('PgUp', () => _sendKey('\x1b[5~')),
+            _buildKey('PgDn', () => _sendKey('\x1b[6~')),
+            _buildKey('Home', () => _sendKey('\x1b[H')),
+            _buildKey('End', () => _sendKey('\x1b[F')),
+            _buildKey('Del', () => _sendByte(0x7F)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildKey(String label, VoidCallback onTap, {Color? color}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Material(
+        color: color ?? Colors.grey[800],
+        borderRadius: BorderRadius.circular(4),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(4),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            constraints: const BoxConstraints(minWidth: 36),
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
         ),
       ),
     );

@@ -17,6 +17,10 @@ class SshShell {
     session.write(Uint8List.fromList(utf8.encode(data)));
   }
 
+  void writeBytes(Uint8List data) {
+    session.write(data);
+  }
+
   Future<void> close() async {
     session.close();
     await session.done;
@@ -125,7 +129,7 @@ class SshService {
 
     final session = await client.shell(
       pty: const SSHPtyConfig(
-        type: 'xterm',
+        type: 'xterm-256color',
         width: 80,
         height: 24,
       ),
@@ -176,7 +180,7 @@ class SshService {
 
     final session = await targetClient.shell(
       pty: const SSHPtyConfig(
-        type: 'xterm',
+        type: 'xterm-256color',
         width: 80,
         height: 24,
       ),
