@@ -45,5 +45,6 @@
             <data android:mimeType="text/plain"/>
         </intent>
         <package android:name="com.tailscale.ipn"/>
+        <package android:name="org.connectbot"/>
     </queries>
 </manifest>

@@ -21,6 +21,32 @@ class SettingsService extends ChangeNotifier {
   static const String _haSwitchEntityKey = 'ha_switch_entity';
   static const String _defaultHaSwitchEntity = 'switch.desktop_pc';
 
+  static const String _tvLocalIpKey = 'tv_local_ip';
+  static const String _defaultTvLocalIp = '192.168.1.4';
+  static const String _tvTailscaleIpKey = 'tv_tailscale_ip';
+  static const String _defaultTvTailscaleIp = '100.117.222.75';
+  static const String _tvUserKey = 'tv_user';
+  static const String _defaultTvUser = 'yanli';
+  static const String _tvPassKey = 'tv_pass';
+  static const String _defaultTvPass = '123';
+
+  static const String _piIpKey = 'pi_ip';
+  static const String _defaultPiIp = '192.168.1.2';
+  static const String _piUserKey = 'pi_user';
+  static const String _defaultPiUser = 'pi';
+  static const String _piPassKey = 'pi_pass';
+  static const String _defaultPiPass = '123';
+
+  static const String _zeroIpKey = 'zero_ip';
+  static const String _defaultZeroIp = '192.168.1.3';
+  static const String _zeroUserKey = 'zero_user';
+  static const String _defaultZeroUser = 'zero';
+  static const String _zeroPassKey = 'zero_pass';
+  static const String _defaultZeroPass = '123';
+
+  static const String _useExternalSshAppKey = 'use_external_ssh_app';
+  static const bool _defaultUseExternalSshApp = false;
+
   String _ipAddress = _defaultIp;
   String _macAddress = _defaultMac;
   String _tailscaleIp = _defaultTailscaleIp;
@@ -29,6 +55,19 @@ class SettingsService extends ChangeNotifier {
   String _haToken = _defaultHaToken;
   String _haSensorEntity = _defaultHaSensorEntity;
   String _haSwitchEntity = _defaultHaSwitchEntity;
+
+  String _tvLocalIp = _defaultTvLocalIp;
+  String _tvTailscaleIp = _defaultTvTailscaleIp;
+  String _tvUser = _defaultTvUser;
+  String _tvPass = _defaultTvPass;
+  String _piIp = _defaultPiIp;
+  String _piUser = _defaultPiUser;
+  String _piPass = _defaultPiPass;
+  String _zeroIp = _defaultZeroIp;
+  String _zeroUser = _defaultZeroUser;
+  String _zeroPass = _defaultZeroPass;
+  bool _useExternalSshApp = _defaultUseExternalSshApp;
+
   SharedPreferences? _prefs;
 
   String get ipAddress => _ipAddress;
@@ -40,6 +79,18 @@ class SettingsService extends ChangeNotifier {
   String get haSensorEntity => _haSensorEntity;
   String get haSwitchEntity => _haSwitchEntity;
 
+  String get tvLocalIp => _tvLocalIp;
+  String get tvTailscaleIp => _tvTailscaleIp;
+  String get tvUser => _tvUser;
+  String get tvPass => _tvPass;
+  String get piIp => _piIp;
+  String get piUser => _piUser;
+  String get piPass => _piPass;
+  String get zeroIp => _zeroIp;
+  String get zeroUser => _zeroUser;
+  String get zeroPass => _zeroPass;
+  bool get useExternalSshApp => _useExternalSshApp;
+
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
     _ipAddress = _prefs?.getString(_ipAddressKey) ?? _defaultIp;
@@ -50,6 +101,19 @@ class SettingsService extends ChangeNotifier {
     _haToken = _prefs?.getString(_haTokenKey) ?? _defaultHaToken;
     _haSensorEntity = _prefs?.getString(_haSensorEntityKey) ?? _defaultHaSensorEntity;
     _haSwitchEntity = _prefs?.getString(_haSwitchEntityKey) ?? _defaultHaSwitchEntity;
+
+    _tvLocalIp = _prefs?.getString(_tvLocalIpKey) ?? _defaultTvLocalIp;
+    _tvTailscaleIp = _prefs?.getString(_tvTailscaleIpKey) ?? _defaultTvTailscaleIp;
+    _tvUser = _prefs?.getString(_tvUserKey) ?? _defaultTvUser;
+    _tvPass = _prefs?.getString(_tvPassKey) ?? _defaultTvPass;
+    _piIp = _prefs?.getString(_piIpKey) ?? _defaultPiIp;
+    _piUser = _prefs?.getString(_piUserKey) ?? _defaultPiUser;
+    _piPass = _prefs?.getString(_piPassKey) ?? _defaultPiPass;
+    _zeroIp = _prefs?.getString(_zeroIpKey) ?? _defaultZeroIp;
+    _zeroUser = _prefs?.getString(_zeroUserKey) ?? _defaultZeroUser;
+    _zeroPass = _prefs?.getString(_zeroPassKey) ?? _defaultZeroPass;
+    _useExternalSshApp = _prefs?.getBool(_useExternalSshAppKey) ?? _defaultUseExternalSshApp;
+
     notifyListeners();
   }
 
@@ -99,5 +163,71 @@ class SettingsService extends ChangeNotifier {
     _haSwitchEntity = entity;
     notifyListeners();
     await _prefs?.setString(_haSwitchEntityKey, entity);
+  }
+
+  Future<void> setTvLocalIp(String ip) async {
+    _tvLocalIp = ip;
+    notifyListeners();
+    await _prefs?.setString(_tvLocalIpKey, ip);
+  }
+
+  Future<void> setTvTailscaleIp(String ip) async {
+    _tvTailscaleIp = ip;
+    notifyListeners();
+    await _prefs?.setString(_tvTailscaleIpKey, ip);
+  }
+
+  Future<void> setTvUser(String user) async {
+    _tvUser = user;
+    notifyListeners();
+    await _prefs?.setString(_tvUserKey, user);
+  }
+
+  Future<void> setTvPass(String pass) async {
+    _tvPass = pass;
+    notifyListeners();
+    await _prefs?.setString(_tvPassKey, pass);
+  }
+
+  Future<void> setPiIp(String ip) async {
+    _piIp = ip;
+    notifyListeners();
+    await _prefs?.setString(_piIpKey, ip);
+  }
+
+  Future<void> setPiUser(String user) async {
+    _piUser = user;
+    notifyListeners();
+    await _prefs?.setString(_piUserKey, user);
+  }
+
+  Future<void> setPiPass(String pass) async {
+    _piPass = pass;
+    notifyListeners();
+    await _prefs?.setString(_piPassKey, pass);
+  }
+
+  Future<void> setZeroIp(String ip) async {
+    _zeroIp = ip;
+    notifyListeners();
+    await _prefs?.setString(_zeroIpKey, ip);
+  }
+
+  Future<void> setZeroUser(String user) async {
+    _zeroUser = user;
+    notifyListeners();
+    await _prefs?.setString(_zeroUserKey, user);
+  }
+
+  Future<void> setZeroPass(String pass) async {
+    _zeroPass = pass;
+    notifyListeners();
+    await _prefs?.setString(_zeroPassKey, pass);
+  }
+
+  Future<void> setUseExternalSshApp(bool value) async {
+    _useExternalSshApp = value;
+    notifyListeners();
+    await _prefs?.setBool(_useExternalSshAppKey, value);
   }
 }

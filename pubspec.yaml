@@ -33,6 +33,7 @@ dependencies:
 
   cupertino_icons: ^1.0.8
   shared_preferences: ^2.5.2
+  dartssh2: ^2.22.3
 
 dev_dependencies:
   flutter_test:

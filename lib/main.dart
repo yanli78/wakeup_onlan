@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'pages/settings_page.dart';
+import 'pages/ssh_terminal_page.dart';
 import 'services/network_service.dart';
 import 'services/settings_service.dart';
 import 'services/app_launcher_service.dart';
@@ -236,6 +237,65 @@ class _HomePageState extends State<HomePage> {
     _checkPcStatus();
   }
 
+  void _openSshTerminal(String device) {
+    if (_settingsService.useExternalSshApp) {
+      AppLauncherService.launchConnectBot();
+      return;
+    }
+
+    if (!_isOnLocal && !_isOnTailscale) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请先连接网络')));
+      return;
+    }
+
+    final tvHost = _isOnLocal
+        ? _settingsService.tvLocalIp
+        : _settingsService.tvTailscaleIp;
+
+    String targetHost;
+    String targetUser;
+    String targetPass;
+    bool useJump = false;
+
+    if (device == 'tv') {
+      targetHost = tvHost;
+      targetUser = _settingsService.tvUser;
+      targetPass = _settingsService.tvPass;
+    } else if (device == 'pi') {
+      targetHost = _settingsService.piIp;
+      targetUser = _settingsService.piUser;
+      targetPass = _settingsService.piPass;
+      useJump = true;
+    } else if (device == 'zero') {
+      targetHost = _settingsService.zeroIp;
+      targetUser = _settingsService.zeroUser;
+      targetPass = _settingsService.zeroPass;
+      useJump = true;
+    } else {
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SshTerminalPage(
+          deviceName: device.toUpperCase(),
+          host: targetHost,
+          port: 22,
+          username: targetUser,
+          password: targetPass,
+          useJumpHost: useJump,
+          jumpHost: useJump ? tvHost : null,
+          jumpPort: 22,
+          jumpUsername: useJump ? _settingsService.tvUser : null,
+          jumpPassword: useJump ? _settingsService.tvPass : null,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_isInitialized) {
@@ -330,24 +390,19 @@ class _HomePageState extends State<HomePage> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             _buildSquareButton(
-              icon: Icons.play_arrow,
-              label: '唤醒',
-              onTap:
-                  _status == PcStatus.online ||
-                      _status == PcStatus.checking ||
-                      _status == PcStatus.waking
-                  ? null
-                  : _onCircleButtonTap,
+              icon: Icons.tv,
+              label: 'TV',
+              onTap: () => _openSshTerminal('tv'),
             ),
             _buildSquareButton(
-              icon: Icons.network_ping,
-              label: _isOnLocal ? '局域网已连' : '局域网未连',
-              onTap: null,
+              icon: Icons.memory,
+              label: 'Pi',
+              onTap: () => _openSshTerminal('pi'),
             ),
             _buildSquareButton(
-              icon: Icons.vpn_lock,
-              label: _isOnTailscale ? 'VPN已连' : 'VPN未连',
-              onTap: null,
+              icon: Icons.developer_board,
+              label: 'Zero',
+              onTap: () => _openSshTerminal('zero'),
             ),
           ],
         ),
