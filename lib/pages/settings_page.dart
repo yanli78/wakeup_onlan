@@ -14,7 +14,8 @@ class _SettingsPageState extends State<SettingsPage> {
   late TextEditingController _ipController;
   late TextEditingController _macController;
   late TextEditingController _tailscaleIpController;
-  late TextEditingController _haUrlController;
+  late TextEditingController _haLocalUrlController;
+  late TextEditingController _haTailscaleUrlController;
   late TextEditingController _haTokenController;
   late TextEditingController _haSensorController;
   late TextEditingController _haSwitchController;
@@ -28,7 +29,8 @@ class _SettingsPageState extends State<SettingsPage> {
     _ipController = TextEditingController(text: widget.settingsService.ipAddress);
     _macController = TextEditingController(text: widget.settingsService.macAddress);
     _tailscaleIpController = TextEditingController(text: widget.settingsService.tailscaleIp);
-    _haUrlController = TextEditingController(text: widget.settingsService.haBaseUrl);
+    _haLocalUrlController = TextEditingController(text: widget.settingsService.haLocalUrl);
+    _haTailscaleUrlController = TextEditingController(text: widget.settingsService.haTailscaleUrl);
     _haTokenController = TextEditingController(text: widget.settingsService.haToken);
     _haSensorController = TextEditingController(text: widget.settingsService.haSensorEntity);
     _haSwitchController = TextEditingController(text: widget.settingsService.haSwitchEntity);
@@ -39,7 +41,8 @@ class _SettingsPageState extends State<SettingsPage> {
     _ipController.dispose();
     _macController.dispose();
     _tailscaleIpController.dispose();
-    _haUrlController.dispose();
+    _haLocalUrlController.dispose();
+    _haTailscaleUrlController.dispose();
     _haTokenController.dispose();
     _haSensorController.dispose();
     _haSwitchController.dispose();
@@ -76,12 +79,22 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  void _saveHaUrl() {
-    final url = _haUrlController.text.trim();
+  void _saveHaLocalUrl() {
+    final url = _haLocalUrlController.text.trim();
     if (url.isNotEmpty) {
-      widget.settingsService.setHaBaseUrl(url);
+      widget.settingsService.setHaLocalUrl(url);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('HA地址已保存')),
+        const SnackBar(content: Text('局域网HA地址已保存')),
+      );
+    }
+  }
+
+  void _saveHaTailscaleUrl() {
+    final url = _haTailscaleUrlController.text.trim();
+    if (url.isNotEmpty) {
+      widget.settingsService.setHaTailscaleUrl(url);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tailscale HA地址已保存')),
       );
     }
   }
@@ -199,18 +212,35 @@ class _SettingsPageState extends State<SettingsPage> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: TextField(
-                  controller: _haUrlController,
+                  controller: _haLocalUrlController,
                   decoration: InputDecoration(
-                    labelText: 'HA地址',
-                    hintText: '例如: http://100.117.222.75:8123',
+                    labelText: '局域网HA地址',
+                    hintText: '例如: http://192.168.1.4:8123',
                     prefixIcon: const Icon(Icons.link),
                     suffixIcon: IconButton(
                       icon: const Icon(Icons.save),
-                      onPressed: _saveHaUrl,
+                      onPressed: _saveHaLocalUrl,
                     ),
                     border: const OutlineInputBorder(),
                   ),
-                  onSubmitted: (_) => _saveHaUrl(),
+                  onSubmitted: (_) => _saveHaLocalUrl(),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: TextField(
+                  controller: _haTailscaleUrlController,
+                  decoration: InputDecoration(
+                    labelText: 'Tailscale HA地址',
+                    hintText: '例如: http://100.117.222.75:8123',
+                    prefixIcon: const Icon(Icons.vpn_lock),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.save),
+                      onPressed: _saveHaTailscaleUrl,
+                    ),
+                    border: const OutlineInputBorder(),
+                  ),
+                  onSubmitted: (_) => _saveHaTailscaleUrl(),
                 ),
               ),
               Padding(

@@ -51,10 +51,6 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _initSettings() async {
     await _settingsService.init();
-    _haService = HomeAssistantService(
-      baseUrl: _settingsService.haBaseUrl,
-      token: _settingsService.haToken,
-    );
     setState(() {
       _isInitialized = true;
     });
@@ -72,6 +68,15 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  String _getHaBaseUrl() {
+    if (_isOnLocal) {
+      return _settingsService.haLocalUrl;
+    } else if (_isOnTailscale) {
+      return _settingsService.haTailscaleUrl;
+    }
+    return _settingsService.haLocalUrl;
+  }
+
   Future<void> _checkPcStatus() async {
     if (_isChecking) return;
 
@@ -83,12 +88,9 @@ class _HomePageState extends State<HomePage> {
 
     bool online = false;
 
-    if (_isOnLocal) {
-      final ip = _settingsService.ipAddress;
-      online = await NetworkService.isPcOnline(ip);
-    } else if (_isOnTailscale) {
+    if (_isOnLocal || _isOnTailscale) {
       _haService = HomeAssistantService(
-        baseUrl: _settingsService.haBaseUrl,
+        baseUrl: _getHaBaseUrl(),
         token: _settingsService.haToken,
       );
       final state = await _haService?.getEntityState(
@@ -117,29 +119,13 @@ class _HomePageState extends State<HomePage> {
     await _checkNetworkStatus();
 
     if (_canWake()) {
-      bool wakeSuccess = false;
-
-      if (_isOnLocal) {
-        final mac = _settingsService.macAddress;
-        String? broadcastAddr;
-
-        final ip = _settingsService.ipAddress;
-        final parts = ip.split('.');
-        if (parts.length == 4) {
-          broadcastAddr = '${parts[0]}.${parts[1]}.${parts[2]}.255';
-        }
-
-        NetworkService.sendMagicPacket(mac, broadcastAddress: broadcastAddr);
-        wakeSuccess = true;
-      } else if (_isOnTailscale) {
-        _haService = HomeAssistantService(
-          baseUrl: _settingsService.haBaseUrl,
-          token: _settingsService.haToken,
-        );
-        wakeSuccess =
-            await _haService?.turnOnSwitch(_settingsService.haSwitchEntity) ??
-            false;
-      }
+      _haService = HomeAssistantService(
+        baseUrl: _getHaBaseUrl(),
+        token: _settingsService.haToken,
+      );
+      final wakeSuccess =
+          await _haService?.turnOnSwitch(_settingsService.haSwitchEntity) ??
+          false;
 
       if (wakeSuccess && mounted) {
         ScaffoldMessenger.of(
@@ -200,10 +186,6 @@ class _HomePageState extends State<HomePage> {
       MaterialPageRoute(
         builder: (context) => SettingsPage(settingsService: _settingsService),
       ),
-    );
-    _haService = HomeAssistantService(
-      baseUrl: _settingsService.haBaseUrl,
-      token: _settingsService.haToken,
     );
     _checkPcStatus();
   }
