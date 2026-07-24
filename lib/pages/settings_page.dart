@@ -688,6 +688,43 @@ class _SettingsPageState extends State<SettingsPage> {
                   setState(() {});
                 },
               ),
+              const Divider(height: 16),
+              ListTile(
+                leading: const Icon(Icons.text_fields),
+                title: const Text('终端字体大小'),
+                subtitle: Text(
+                  '${widget.settingsService.terminalFontSize.toStringAsFixed(0)} sp',
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    const Text(
+                      'Aa',
+                      style: TextStyle(fontSize: 10, color: Colors.grey),
+                    ),
+                    Expanded(
+                      child: Slider(
+                        value: widget.settingsService.terminalFontSize,
+                        min: 8,
+                        max: 24,
+                        divisions: 16,
+                        label:
+                            '${widget.settingsService.terminalFontSize.toStringAsFixed(0)} sp',
+                        onChanged: (value) {
+                          widget.settingsService.setTerminalFontSize(value);
+                          setState(() {});
+                        },
+                      ),
+                    ),
+                    const Text(
+                      'Aa',
+                      style: TextStyle(fontSize: 18, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 8),
             ],
           ),

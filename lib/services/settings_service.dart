@@ -47,6 +47,9 @@ class SettingsService extends ChangeNotifier {
   static const String _useExternalSshAppKey = 'use_external_ssh_app';
   static const bool _defaultUseExternalSshApp = false;
 
+  static const String _terminalFontSizeKey = 'terminal_font_size';
+  static const double _defaultTerminalFontSize = 13.0;
+
   String _ipAddress = _defaultIp;
   String _macAddress = _defaultMac;
   String _tailscaleIp = _defaultTailscaleIp;
@@ -67,6 +70,7 @@ class SettingsService extends ChangeNotifier {
   String _zeroUser = _defaultZeroUser;
   String _zeroPass = _defaultZeroPass;
   bool _useExternalSshApp = _defaultUseExternalSshApp;
+  double _terminalFontSize = _defaultTerminalFontSize;
 
   SharedPreferences? _prefs;
 
@@ -90,6 +94,7 @@ class SettingsService extends ChangeNotifier {
   String get zeroUser => _zeroUser;
   String get zeroPass => _zeroPass;
   bool get useExternalSshApp => _useExternalSshApp;
+  double get terminalFontSize => _terminalFontSize;
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -113,6 +118,7 @@ class SettingsService extends ChangeNotifier {
     _zeroUser = _prefs?.getString(_zeroUserKey) ?? _defaultZeroUser;
     _zeroPass = _prefs?.getString(_zeroPassKey) ?? _defaultZeroPass;
     _useExternalSshApp = _prefs?.getBool(_useExternalSshAppKey) ?? _defaultUseExternalSshApp;
+    _terminalFontSize = _prefs?.getDouble(_terminalFontSizeKey) ?? _defaultTerminalFontSize;
 
     notifyListeners();
   }
@@ -229,5 +235,11 @@ class SettingsService extends ChangeNotifier {
     _useExternalSshApp = value;
     notifyListeners();
     await _prefs?.setBool(_useExternalSshAppKey, value);
+  }
+
+  Future<void> setTerminalFontSize(double size) async {
+    _terminalFontSize = size.clamp(8.0, 24.0);
+    notifyListeners();
+    await _prefs?.setDouble(_terminalFontSizeKey, _terminalFontSize);
   }
 }

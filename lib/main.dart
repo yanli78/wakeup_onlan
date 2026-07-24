@@ -291,6 +291,7 @@ class _HomePageState extends State<HomePage> {
           jumpPort: 22,
           jumpUsername: useJump ? _settingsService.tvUser : null,
           jumpPassword: useJump ? _settingsService.tvPass : null,
+          initialFontSize: _settingsService.terminalFontSize,
         ),
       ),
     );

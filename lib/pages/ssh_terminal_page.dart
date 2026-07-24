@@ -41,6 +41,7 @@ class SshTerminalPage extends StatefulWidget {
   final int? jumpPort;
   final String? jumpUsername;
   final String? jumpPassword;
+  final double initialFontSize;
 
   const SshTerminalPage({
     super.key,
@@ -54,6 +55,7 @@ class SshTerminalPage extends StatefulWidget {
     this.jumpPort,
     this.jumpUsername,
     this.jumpPassword,
+    this.initialFontSize = 13,
   });
 
   @override
@@ -76,6 +78,8 @@ class _SshTerminalPageState extends State<SshTerminalPage> {
   @override
   void initState() {
     super.initState();
+    _fontSize = widget.initialFontSize.clamp(8.0, 24.0);
+    _baseFontSize = _fontSize;
     _terminal = Terminal(
       onOutput: _onTerminalOutput,
       onResize: _onTerminalResize,
@@ -204,7 +208,8 @@ class _SshTerminalPageState extends State<SshTerminalPage> {
 
   void _resetFontSize() {
     setState(() {
-      _fontSize = 13;
+      _fontSize = widget.initialFontSize.clamp(8.0, 24.0);
+      _baseFontSize = _fontSize;
     });
   }
 
